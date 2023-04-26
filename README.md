@@ -10,7 +10,7 @@ Run the following command on your local environment:
 
 ```shell
 git clone https://github.com/crazydev524/simple_wallet.git
-cd my-project-name
+cd simple_wallet
 npm install
 ```
 
