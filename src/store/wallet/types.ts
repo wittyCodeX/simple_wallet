@@ -1,5 +1,8 @@
 export type WalletType = {
   address: string;
-  coinBalance: string;
   privateKey: string;
+  ETH: string;
+  SEP: string;
+  AVA: string;
+  AUR: string;
 };

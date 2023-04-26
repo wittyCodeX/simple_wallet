@@ -2,12 +2,13 @@
 /* eslint-disable simple-import-sort/imports */
 import crypto from 'crypto';
 import { ethers } from 'ethers';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Meta } from '@/layouts/Meta';
 import { Main } from '@/templates/Main';
 import { useDispatch, useSelector } from 'react-redux';
 import { addWallet, authAction } from '@/store/actions';
+import type { WalletType } from '@/store/wallet/types';
 
 declare global {
   interface Window {
@@ -16,6 +17,16 @@ declare global {
   }
 }
 
+const SEPprovider = new ethers.providers.JsonRpcProvider(
+  'https://sepolia.infura.io/v3/43a5d6ed07a140288e17955ddde82ae1'
+);
+const AVAprovider = new ethers.providers.JsonRpcProvider(
+  'https://avalanche-fuji.infura.io/v3/43a5d6ed07a140288e17955ddde82ae1'
+);
+const AURprovider = new ethers.providers.JsonRpcProvider(
+  'https://aurora-testnet.infura.io/v3/43a5d6ed07a140288e17955ddde82ae1'
+);
+
 const Index = () => {
   const [privateKey, setPrivateKey] = useState<string>();
   const [name, setName] = useState<string>();
@@ -23,30 +34,45 @@ const Index = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>();
   const [confirm, setConfirm] = useState<Boolean>(false);
   const [alert, setAlert] = useState<string>();
+  const [wallets, setWallets] = useState<WalletType[]>([]);
+  const [ETHprovider, setETHprovider] = useState<any>(null);
   const walletData = useSelector((state: any) => state.wallet.wallets);
   const userName = useSelector((state: any) => state.autSlice.name);
   const dispatch = useDispatch();
 
-  const handleCreate = async () => {
-    let provider;
-    if (window.ethereum) {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
+  const decimalBalance = (balance: any) => {
+    return ethers.utils.formatEther(balance);
+  };
+
+  const getETHprovider = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      const httpprovider = new ethers.providers.Web3Provider(window.ethereum);
+      setETHprovider(httpprovider);
     } else {
-      provider = new ethers.providers.JsonRpcProvider(
+      const httpprovider = new ethers.providers.JsonRpcProvider(
         'https://mainnet.infura.io/v3/43a5d6ed07a140288e17955ddde82ae1'
       );
+      setETHprovider(httpprovider);
     }
+  };
+
+  const handleCreate = async () => {
     const key = `0x${crypto.randomBytes(32).toString('hex')}`;
-    const wallet = new ethers.Wallet(key, provider);
-    const balance = await provider.getBalance(wallet.address);
-    const decimalBalance = ethers.utils.formatEther(balance);
-    dispatch(
-      addWallet({
-        address: wallet.address,
-        coinBalance: decimalBalance,
-        privateKey: wallet.privateKey,
-      })
-    );
+    const wallet = new ethers.Wallet(key);
+    const ETH = await ETHprovider.getBalance(wallet.address);
+    const SEP = await SEPprovider.getBalance(wallet.address);
+    const AVA = await AVAprovider.getBalance(wallet.address);
+    const AUR = await AURprovider.getBalance(wallet.address);
+    const newWallet: WalletType = {
+      address: wallet.address,
+      privateKey: wallet.privateKey,
+      ETH: decimalBalance(ETH),
+      SEP: decimalBalance(SEP),
+      AVA: decimalBalance(AVA),
+      AUR: decimalBalance(AUR),
+    };
+    setWallets((wall) => [...wall, newWallet]);
+    dispatch(addWallet(newWallet));
   };
 
   const handleLogin = () => {
@@ -79,6 +105,34 @@ const Index = () => {
   const handleLock = () => {
     dispatch(authAction(''));
   };
+
+  const handleFetchBalance = (data: WalletType[]) => {
+    data.map(async (value) => {
+      const ETH = await ETHprovider.getBalance(value.address);
+      const SEP = await SEPprovider.getBalance(value.address);
+      const AVA = await AVAprovider.getBalance(value.address);
+      const AUR = await AURprovider.getBalance(value.address);
+      const newData: WalletType = {
+        address: value.address,
+        privateKey: value.privateKey,
+        ETH: decimalBalance(ETH),
+        SEP: decimalBalance(SEP),
+        AVA: decimalBalance(AVA),
+        AUR: decimalBalance(AUR),
+      };
+      setWallets((wallet) => [...wallet, newData]);
+    });
+  };
+
+  useEffect(() => {
+    if (ETHprovider && walletData) {
+      handleFetchBalance(walletData);
+    }
+  }, [ETHprovider]);
+
+  useEffect(() => {
+    getETHprovider();
+  }, []);
 
   return (
     <>
@@ -139,19 +193,25 @@ const Index = () => {
                           Address
                         </th>
                         <th scope="col" className="px-6 py-3">
-                          Token
+                          Ethereum
                         </th>
                         <th scope="col" className="px-6 py-3">
-                          Balance
+                          sepolia
                         </th>
                         <th scope="col" className="px-6 py-3">
-                          view
+                          avalanche
+                        </th>
+                        <th scope="col" className="px-6 py-3">
+                          aurora
+                        </th>
+                        <th scope="col" className="px-6 py-3">
+                          Private Key
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {walletData &&
-                        walletData.map((val: any, key: number) => {
+                      {wallets &&
+                        wallets.map((val: any, key: number) => {
                           return (
                             <tr
                               key={`address${key}`}
@@ -159,8 +219,10 @@ const Index = () => {
                             >
                               <td className="px-6 py-4">{key + 1}</td>
                               <td className="px-6 py-4">{val.address}</td>
-                              <td className="px-6 py-4">ETH</td>
-                              <td className="px-6 py-4">{val.coinBalance}</td>
+                              <td className="px-6 py-4">{val.ETH}</td>
+                              <td className="px-6 py-4">{val.SEP}</td>
+                              <td className="px-6 py-4">{val.AVA}</td>
+                              <td className="px-6 py-4">{val.AUR}</td>
                               <td className="px-6 py-4">
                                 <button
                                   data-testid={`PrivateKey${key}`}
@@ -169,7 +231,7 @@ const Index = () => {
                                   }
                                   className="border border-gray-700 px-3 py-2 hover:bg-gray-700 hover:text-white"
                                 >
-                                  Private Key
+                                  View
                                 </button>
                               </td>
                             </tr>
