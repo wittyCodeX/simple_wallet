@@ -28,7 +28,14 @@ const Index = () => {
   const dispatch = useDispatch();
 
   const handleCreate = async () => {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    let provider;
+    if (window.ethereum) {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+    } else {
+      provider = new ethers.providers.JsonRpcProvider(
+        'https://mainnet.infura.io/v3/43a5d6ed07a140288e17955ddde82ae1'
+      );
+    }
     const key = `0x${crypto.randomBytes(32).toString('hex')}`;
     const wallet = new ethers.Wallet(key, provider);
     const balance = await provider.getBalance(wallet.address);
