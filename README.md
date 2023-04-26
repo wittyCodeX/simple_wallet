@@ -9,7 +9,7 @@
 Run the following command on your local environment:
 
 ```shell
-git clone --depth=1 https://github.com/ixartz/Next-js-Boilerplate.git my-project-name
+git clone https://github.com/crazydev524/simple_wallet.git
 cd my-project-name
 npm install
 ```
