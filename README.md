@@ -19,6 +19,10 @@ Then, you can run locally in development mode with live reload:
 ```shell
 npm run dev
 ```
+Run unit test.
+```shell
+npm run test
+```
 
 Open http://localhost:3000 with your favorite browser to see your project.
 
